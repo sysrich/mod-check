@@ -1,0 +1,83 @@
+#!/bin/bash
+
+SUBVOLS=".snapshots boot/grub2/i386-pc boot/grub2/x86_64-efi boot/writable home opt root srv usr/local var"
+PACKAGES="patterns-microos-base patterns-microos-base-zypper patterns-microos-defaults patterns-microos-hardware patterns-microos-desktop-gnome patterns-containers-container_runtime patterns-base-bootloader accountsservice-lang irqbalance iso-codes-lang kernel-default numactl os-prober sg3_utils nvme-cli"
+
+TMPMNT=$(mktemp -d)
+RUNDATE=$(date '+%Y-%m-%d %T')
+GREEN='\033[1m\033[32m'
+YELLOW='\033[1m\033[33m'
+RED='\033[1m\033[31m'
+CLEAR='\033[0m'
+
+print_yellow() {
+	printf "${YELLOW}"
+	printf "%s\n" "$@"
+	printf "${CLEAR}"
+}
+
+print_green() {
+	printf "${GREEN}"
+	printf "%s\n" "$@"
+	printf "${CLEAR}"
+}
+
+print_red() {
+	printf "${RED}"
+	printf "%s\n" "$@"
+	printf "${CLEAR}"
+}
+
+[ -r /etc/os-release ] && . /etc/os-release
+if [ "${ID%%[ ]*}" != "opensuse-microos" ]; then
+	print_red "This script is only for openSUSE MicroOS"
+	exit
+fi
+
+if [ "$EUID" -ne 0 ]; then
+        sudo "$0" "$@"
+        exit
+fi
+
+print_red "This is a prototype script that may do terrible things to your system, you have been warned"
+read -p "Do you want to continue? (yes/no) " yn
+case $yn in
+	yes ) print_green "OK";;
+	no ) echo exiting...;
+		exit;;
+	* ) echo invalid response;
+		exit 1;;
+esac
+
+print_yellow "DEMO: Create New MicroOS Desktop (GNOME) Installation in fresh subvolume. Fool tukit/snapper into thinking its a valid snapshot"
+
+# Create snapshot
+LATESTSNAP=$(tukit -q snapshots | tail -n1)
+WORKSNAP=$((LATESTSNAP+1))
+mkdir /.snapshots/$WORKSNAP
+btrfs subvolume create /.snapshots/$WORKSNAP/snapshot
+
+# Create dummy snapper XML
+cat <<EOF > /.snapshots/$WORKSNAP/info.xml
+<?xml version="1.0"?>
+<snapshot>
+  <type>single</type>
+  <num>$WORKSNAP</num>
+  <date>$RUNDATE</date>
+  <description>mod-check Powerwash</description>
+  <userdata>
+    <key>transactional-update-in-progress</key>
+    <value>yes</value>
+  </userdata>
+</snapshot>
+EOF
+
+systemctl restart snapperd
+
+#print_red "DEBUG: Check if SUBVOLS need to be mkdird"
+#print_red "DEBUG: make /etc dir"
+
+print_red "DEBUG: Install MicroOS GNOME to $WORKSNAP"
+ZYPP_SINGLE_RPMTRANS=1
+zypper -R /.snapshots/$WORKSNAP/snapshot --gpg-auto-import-keys ar -f http://download.opensuse.org/tumbleweed/repo/oss/ repo-non-oss
+zypper -R /.snapshots/$WORKSNAP/snapshot --gpg-auto-import-keys in $PACKAGES
