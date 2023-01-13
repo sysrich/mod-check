@@ -74,9 +74,12 @@ EOF
 
 systemctl restart snapperd
 
-#print_red "DEBUG: Check if SUBVOLS need to be mkdird"
-#print_red "DEBUG: make /etc dir"
-
 print_red "DEBUG: Install MicroOS GNOME to $WORKSNAP"
 zypper -R /.snapshots/$WORKSNAP/snapshot --gpg-auto-import-keys ar -f http://mirrorcache-eu.opensuse.org/tumbleweed/repo/oss/ repo-non-oss
 ZYPP_SINGLE_RPMTRANS=1 zypper -R /.snapshots/$WORKSNAP/snapshot --gpg-auto-import-keys in $PACKAGES
+
+#TODO - edit etc/fstab to look like a regular t-u snapshots one
+#TODO - populate etc/fstab with etc/fstab from the existing host
+#TODO - fix bootloader
+#TODO - delete var/lib/overlay/1
+#TODO - see if all this stuff actually boots
