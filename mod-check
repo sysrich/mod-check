@@ -78,6 +78,5 @@ systemctl restart snapperd
 #print_red "DEBUG: make /etc dir"
 
 print_red "DEBUG: Install MicroOS GNOME to $WORKSNAP"
-ZYPP_SINGLE_RPMTRANS=1
-zypper -R /.snapshots/$WORKSNAP/snapshot --gpg-auto-import-keys ar -f http://download.opensuse.org/tumbleweed/repo/oss/ repo-non-oss
-zypper -R /.snapshots/$WORKSNAP/snapshot --gpg-auto-import-keys in $PACKAGES
+zypper -R /.snapshots/$WORKSNAP/snapshot --gpg-auto-import-keys ar -f http://mirrorcache-eu.opensuse.org/tumbleweed/repo/oss/ repo-non-oss
+ZYPP_SINGLE_RPMTRANS=1 zypper -R /.snapshots/$WORKSNAP/snapshot --gpg-auto-import-keys in $PACKAGES
